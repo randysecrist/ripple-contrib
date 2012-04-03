@@ -2,7 +2,7 @@
 
 The ripple-contrib gem is a library of additional model behaviors that
 are not currently found within (but may eventually become part of) the
-core riak-ruby or ripple distributions.
+core [riak-ruby](https://github.com/basho/riak-ruby-client) or [ripple](https://github.com/seancribbs/ripple) distributions.
 
 Generally speaking, the behaviors found within support use cases that
 have more edge cases, but should still strive to apply to a common base.
@@ -25,8 +25,8 @@ Or install it yourself as:
 
 ### Encryption
 
-Be sure to refer to the config/encryption.yml.example before requiring
-this gem, or adding the encryption mixin to your model class.
+Be sure to refer to the [config/encryption.yml.example](https://github.com/randysecrist/ripple-contrib/blob/master/config/encryption.yml.example) before requiring
+this gem.  Once that is done, simply [add the ruby mixin](https://github.com/randysecrist/ripple-contrib/blob/master/test/test_unit_encryption.rb#L9) to a model class.
 
 ## Contributing
 
