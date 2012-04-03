@@ -1,6 +1,11 @@
 # Ripple::Contrib
 
-TODO: Write a gem description
+The ripple-contrib gem is a library of additional model behaviors that
+are not currently found within (but may eventually become part of) the
+core riak-ruby or ripple distributions.
+
+Generally speaking, the behaviors found within support use cases that
+have more edge cases, but should still strive to apply to a common base.
 
 ## Installation
 
@@ -18,7 +23,10 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+### Encryption
+
+Be sure to refer to the config/encryption.yml.example before requiring
+this gem, or adding the encryption mixin to your model class.
 
 ## Contributing
 
