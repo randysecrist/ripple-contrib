@@ -39,8 +39,8 @@ module Ripple
             encryptor.iv = config['iv'] if config['iv']
             Riak::Serializers['application/x-json-encrypted'] = encryptor
           end
-        rescue
-          handle_invalid_encryption_config
+        rescue Exception => e
+          handle_invalid_encryption_config(e.message, e.backtrace)
         end
         encryptor
       end
@@ -135,7 +135,7 @@ module Ripple
 
 end
 
-def handle_invalid_encryption_config
+def handle_invalid_encryption_config(msg, trace)
   puts <<eos
 
     The file "config/encryption.yml" is missing or incorrect. You will
@@ -144,5 +144,12 @@ def handle_invalid_encryption_config
 
     An example is provided in "config/encryption.yml.example".
 eos
+
+  puts "Error Message: " + msg
+  puts "Error Trace:"
+  trace.each do |line|
+    puts line
+  end
+
   exit 1
 end
