@@ -22,14 +22,28 @@ module Ripple
         attr_accessor :encrypted_content_type
       end
 
-      #module InstanceMethods
-        # Overrides the internal method to set the content-type to be
-        # encrypted.
-        def update_robject
-          super
-          robject.content_type = self.class.encrypted_content_type
+      # Overrides the internal method to set the content-type to be
+      # encrypted.
+      def update_robject
+        super
+        robject.content_type = self.class.encrypted_content_type
+      end
+
+      def self.activate
+        encryptor = nil
+        begin
+          unless Riak::Serializers['application/x-json-encrypted']
+            config = YAML.load_file("config/encryption.yml")[ENV['RACK_ENV']]
+            encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new(config['cipher']))
+            encryptor.key = config['key'] if config['key']
+            encryptor.iv = config['iv'] if config['iv']
+            Riak::Serializers['application/x-json-encrypted'] = encryptor
+          end
+        rescue
+          handle_invalid_encryption_config
         end
-      #end
+        encryptor
+      end
     end
 
     # Implements the {Riak::Serializer} API for the purpose of
@@ -91,8 +105,7 @@ module Ripple
           cipher.public_encrypt(object)
         else
           cipher_setup :encrypt
-          result = cipher.update(object)
-          result << cipher.final
+          result = cipher.update(object) << cipher.final
           cipher.reset
           result
         end
@@ -103,8 +116,7 @@ module Ripple
           cipher.private_decrypt(object)
         else
           cipher_setup :decrypt
-          result = cipher.update(object)
-          result << cipher.final
+          result = cipher.update(object) << cipher.final
           cipher.reset
           result
         end
@@ -133,17 +145,4 @@ def handle_invalid_encryption_config
     An example is provided in "config/encryption.yml.example".
 eos
   exit 1
-end
-
-# Load the encryption configuration
-unless Riak::Serializers['application/x-json-encrypted']
-  begin
-    config = YAML.load_file("config/encryption.yml")[ENV['RACK_ENV']]
-    encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new(config['cipher']))
-    encryptor.key = config['key'] if config['key']
-    encryptor.iv = config['iv'] if config['iv']
-    Riak::Serializers['application/x-json-encrypted'] = encryptor
-  rescue
-    handle_invalid_encryption_config
-  end
 end
