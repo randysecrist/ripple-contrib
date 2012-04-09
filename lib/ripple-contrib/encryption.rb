@@ -13,7 +13,7 @@ module Ripple
       extend ActiveSupport::Concern
 
       included do
-        self.encrypted_content_type = "application/x-json-encrypted"
+        @@encrypted_content_type = self.encrypted_content_type = 'application/x-json-encrypted'
       end
 
       module ClassMethods
@@ -26,7 +26,7 @@ module Ripple
       # encrypted.
       def update_robject
         super
-        robject.content_type = self.class.encrypted_content_type
+        robject.content_type = @@encrypted_content_type
       end
 
       def self.activate

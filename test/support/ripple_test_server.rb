@@ -1,6 +1,8 @@
 require 'riak/test_server'
 require 'singleton'
 
+require 'ripple'
+
 ENV['RACK_ENV'] ||= 'test'
 
 class RiakNotFound < StandardError; end

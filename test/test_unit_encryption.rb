@@ -2,7 +2,7 @@ require 'test/unit'
 require 'contest'
 
 require 'support/ripple_test_server'
-require 'ripple-contrib'
+require 'ripple-contrib/encryption'
 
 class EncryptedDocument
   include Ripple::Document
