@@ -55,32 +55,38 @@ class TestEncryption < Test::Unit::TestCase
       end
     end
 
-    context "using symmetric encryption" do
+    context "using DES symmetric encryption" do
       setup do
-        @cipher = OpenSSL::Cipher.new("DES3")
-        @encryptor = Ripple::Contrib::EncryptedSerializer.new(@cipher)
+        @encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new("DES3"))
         @encryptor.key = "basho12345678910818761057920"
       end
 
-      should "encrypt using the cipher" do
-        crypted = @encryptor.dump({"name" => "basho"})
-        @cipher.reset
-        @cipher.decrypt
-        @cipher.key = @encryptor.key
-        result = @cipher.update(crypted)
-        result << @cipher.final
-        assert_equal result,'{"name":"basho"}'
-      end
-
-      should "decrypt using the cipher" do
-        input = '{"name":"basho"}'
-        @cipher.reset
-        @cipher.encrypt
-        @cipher.key = @encryptor.key
-        result = @cipher.update(input)
-        result << @cipher.final
-        assert_equal @encryptor.load(result), {"name" => "basho"}
+      should "encrypt & decrypt using des encryptor" do
+        input = {"name" => "basho"}
+        expected = YAML.dump(input)
+        cipher_text = @encryptor.dump(input)
+        assert cipher_text != input
+        result = YAML.dump(@encryptor.load(cipher_text))
+        assert_equal expected, result
       end
     end
+
+    context "using AES symmetric encryption" do
+      setup do
+        @encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new("AES-256-CBC"))
+        @encryptor.key = 'basho123456789101112basho_test12'
+      end
+
+      should "encrypt & decrypt using aes encryptor" do
+        input = {"name" => "basho"}
+        expected = YAML.dump(input)
+        cipher_text = @encryptor.dump(input)
+        assert cipher_text != input
+        result = YAML.dump(@encryptor.load(cipher_text))
+        assert_equal expected, result
+      end
+
+    end
+
   end
 end

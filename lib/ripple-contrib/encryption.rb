@@ -100,23 +100,41 @@ module Ripple
       end
 
       private
+
+      # generates a new iv each call unless a static (less secure)
+      # iv is used.
       def encrypt(object)
+        result = ''
+        if cipher.respond_to?(:iv=) and @iv == nil
+          iv = OpenSSL::Random.random_bytes(cipher.iv_len)
+          cipher.iv = iv
+          result << Ripple::Contrib::VERSION << iv
+        end
+
         if cipher.respond_to?(:public_encrypt)
-          cipher.public_encrypt(object)
+          result << cipher.public_encrypt(object)
         else
           cipher_setup :encrypt
-          result = cipher.update(object) << cipher.final
+          result << cipher.update(object) << cipher.final
           cipher.reset
-          result
         end
+        result
       end
 
       def decrypt(object)
+        cipher_text = object
+
+        if cipher.respond_to?(:iv=) and @iv == nil
+          version = object.slice(0, Ripple::Contrib::VERSION.length)
+          cipher.iv = object.slice(Ripple::Contrib::VERSION.length, cipher.iv_len)
+          cipher_text = object.slice(Ripple::Contrib::VERSION.length + cipher.iv_len, object.length)
+        end
+
         if cipher.respond_to?(:private_decrypt)
-          cipher.private_decrypt(object)
+          cipher.private_decrypt(cipher_text)
         else
           cipher_setup :decrypt
-          result = cipher.update(object) << cipher.final
+          result = cipher.update(cipher_text) << cipher.final
           cipher.reset
           result
         end
