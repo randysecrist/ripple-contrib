@@ -28,6 +28,10 @@ class TestEncryption < Test::Unit::TestCase
       @encryptor = Ripple::Contrib::EncryptedSerializer.new(NullCipher.new)
     end
 
+    should "not be activated by default" do
+      assert_equal false, Ripple::Contrib::Encryption.activated
+    end
+
     should "serialize using the internal content type" do
       expected = YAML.dump({"name" => "basho"})
       @encryptor.content_type = "application/yaml"

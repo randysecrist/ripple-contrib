@@ -12,6 +12,8 @@ module Ripple
     module Encryption
       extend ActiveSupport::Concern
 
+      @@is_activated = false
+
       included do
         @@encrypted_content_type = self.encrypted_content_type = 'application/x-json-encrypted'
       end
@@ -26,7 +28,9 @@ module Ripple
       # encrypted.
       def update_robject
         super
-        robject.content_type = @@encrypted_content_type
+        if @@is_activated
+          robject.content_type = @@encrypted_content_type
+        end
       end
 
       def self.activate
@@ -38,12 +42,18 @@ module Ripple
             encryptor.key = config['key'] if config['key']
             encryptor.iv = config['iv'] if config['iv']
             Riak::Serializers['application/x-json-encrypted'] = encryptor
+            @@is_activated = true
           end
         rescue Exception => e
           handle_invalid_encryption_config(e.message, e.backtrace)
         end
         encryptor
       end
+
+      def self.activated
+        @@is_activated
+      end
+
     end
 
     # Implements the {Riak::Serializer} API for the purpose of
