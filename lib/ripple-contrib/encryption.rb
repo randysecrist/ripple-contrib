@@ -41,6 +41,7 @@ module Ripple
             encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new(config['cipher']))
             encryptor.key = config['key'] if config['key']
             encryptor.iv = config['iv'] if config['iv']
+            encryptor.base64 = config['base64'] if config['base64']
             Riak::Serializers['application/x-json-encrypted'] = encryptor
             @@is_activated = true
           end
@@ -78,6 +79,10 @@ module Ripple
       # Cipher-specific settings
       # @see OpenSSL::Cipher
       attr_accessor :key, :iv, :key_length, :padding
+
+      # Serialization Options
+      # @return [true, false] Is the encrypted text also base64 encoded?
+      attr_accessor :base64
 
       # Creates a serializer using the provided cipher and internal
       # content type. Be sure to set the {#key}, {#iv}, {#key_length},
@@ -128,16 +133,16 @@ module Ripple
           result << cipher.update(object) << cipher.final
           cipher.reset
         end
-        result
+        return serialize_base64(result)
       end
 
       def decrypt(object)
-        cipher_text = object
+        cipher_text = deserialize_base64(object)
 
         if cipher.respond_to?(:iv=) and @iv == nil
-          version = object.slice(0, Ripple::Contrib::VERSION.length)
-          cipher.iv = object.slice(Ripple::Contrib::VERSION.length, cipher.iv_len)
-          cipher_text = object.slice(Ripple::Contrib::VERSION.length + cipher.iv_len, object.length)
+          version = cipher_text.slice(0, Ripple::Contrib::VERSION.length)
+          cipher.iv = cipher_text.slice(Ripple::Contrib::VERSION.length, cipher.iv_len)
+          cipher_text = cipher_text.slice(Ripple::Contrib::VERSION.length + cipher.iv_len, cipher_text.length)
         end
 
         if cipher.respond_to?(:private_decrypt)
@@ -157,6 +162,22 @@ module Ripple
         cipher.key_length = key_length if key_length
         cipher.padding    = padding    if padding
       end
+
+      private
+      def base64_active
+        @base64
+      end
+
+      def deserialize_base64(data)
+        return data unless base64_active
+        return Base64.decode64 data
+      end
+
+      def serialize_base64(data)
+        return data unless base64_active
+        return Base64.encode64(data)
+      end
+
     end
 
   end
