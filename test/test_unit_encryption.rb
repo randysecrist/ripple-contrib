@@ -26,6 +26,7 @@ class TestEncryption < Test::Unit::TestCase
   context "Ripple::Contrib::EncryptedSerializer" do
     setup do
       @encryptor = Ripple::Contrib::EncryptedSerializer.new(NullCipher.new)
+      @encryptor.base64 = false
     end
 
     should "not be activated by default" do

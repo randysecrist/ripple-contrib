@@ -80,7 +80,7 @@ module Ripple
       # @see OpenSSL::Cipher
       attr_accessor :key, :iv, :key_length, :padding
 
-      # Encryption Options
+      # Serialization Options
       # @return [true, false] Is the encrypted text also base64 encoded?
       attr_accessor :base64
 
@@ -133,11 +133,11 @@ module Ripple
           result << cipher.update(object) << cipher.final
           cipher.reset
         end
-        @base64.nil? ? result : Base64.encode64(result)
+        serialization_options(result, :encode64)
       end
 
       def decrypt(object)
-        cipher_text = @base64.nil? ? object : Base64.decode64(object)
+        cipher_text = serialization_options(object, :decode64)
 
         if cipher.respond_to?(:iv=) and @iv == nil
           version = cipher_text.slice(0, Ripple::Contrib::VERSION.length)
@@ -162,6 +162,16 @@ module Ripple
         cipher.key_length = key_length if key_length
         cipher.padding    = padding    if padding
       end
+
+      private
+      def serialization_options(input_bytes, operation)
+        if Base64.respond_to?(operation)
+          (@base64.nil? or @base64 == false) ? input_bytes : Base64.send(operation, input_bytes)
+        else
+          input_bytes
+        end
+      end
+
     end
 
   end
