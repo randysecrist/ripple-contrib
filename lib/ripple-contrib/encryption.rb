@@ -133,11 +133,11 @@ module Ripple
           result << cipher.update(object) << cipher.final
           cipher.reset
         end
-        serialization_options(result, :encode64)
+        return serialize_base64(result)
       end
 
       def decrypt(object)
-        cipher_text = serialization_options(object, :decode64)
+        cipher_text = deserialize_base64(object)
 
         if cipher.respond_to?(:iv=) and @iv == nil
           version = cipher_text.slice(0, Ripple::Contrib::VERSION.length)
@@ -164,12 +164,18 @@ module Ripple
       end
 
       private
-      def serialization_options(input_bytes, operation)
-        if Base64.respond_to?(operation)
-          (@base64.nil? or @base64 == false) ? input_bytes : Base64.send(operation, input_bytes)
-        else
-          input_bytes
-        end
+      def base64_active
+        @base64
+      end
+
+      def deserialize_base64(data)
+        return data unless base64_active
+        return Base64.decode64 data
+      end
+
+      def serialize_base64(data)
+        return data unless base64_active
+        return Base64.encode64(data)
       end
 
     end
