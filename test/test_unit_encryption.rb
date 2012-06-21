@@ -26,6 +26,7 @@ class TestEncryption < Test::Unit::TestCase
   context "Ripple::Contrib::EncryptedSerializer" do
     setup do
       @encryptor = Ripple::Contrib::EncryptedSerializer.new(NullCipher.new)
+      @encryptor.base64 = false
     end
 
     should "not be activated by default" do
@@ -89,7 +90,27 @@ class TestEncryption < Test::Unit::TestCase
         result = YAML.dump(@encryptor.load(cipher_text))
         assert_equal expected, result
       end
+    end
 
+    context "using base64 encoding" do
+      setup do
+        @encryptor = Ripple::Contrib::EncryptedSerializer.new(NullCipher.new)
+        @encryptor.base64 = true
+      end
+
+      should "serialize to base64" do
+        input = {"name" => "basho"}
+        expected = Base64.encode64 YAML.dump(input)
+        @encryptor.content_type = "application/yaml"
+        assert_equal expected, @encryptor.dump(input)
+      end
+
+      should "deserialize from base64" do
+        expected = {"name" => "basho"}
+        input = Base64.encode64 YAML.dump(expected)
+        @encryptor.content_type = "application/yaml"
+        assert_equal expected, @encryptor.load(input)
+      end
     end
 
   end

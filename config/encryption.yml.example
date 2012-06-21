@@ -17,3 +17,4 @@ test:
 prod:
   cipher: AES-256-CBC
   key: example123456789101112basho_prod
+  base64: true
