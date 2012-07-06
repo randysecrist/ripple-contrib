@@ -1,22 +1,6 @@
-require 'test/unit'
-require 'contest'
+require 'helper'
 
-require 'support/ripple_test_server'
-require 'ripple-contrib'
-
-class EncryptedDocument
-  include Ripple::Document
-  include Ripple::Contrib::Encryption
-
-  property :name, String
-end
-
-class NullCipher
-  def public_encrypt(string); string; end
-  def private_decrypt(string); string; end
-end
-
-class TestEncryption < Test::Unit::TestCase
+class TestMigrationV1ToV2 < Test::Unit::TestCase
   context "Ripple::Contrib::Encryption" do
     should "set the default encrypted content type on the document" do
       assert_equal EncryptedDocument.encrypted_content_type, "application/x-json-encrypted"

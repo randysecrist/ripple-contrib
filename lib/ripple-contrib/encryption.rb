@@ -101,8 +101,12 @@ module Ripple
       # @param [Object] object the Ruby object to serialize/encrypt
       # @return [String] the serialized, encrypted form of the object
       def dump(object)
+#        puts object.inspect
         internal = ::Riak::Serializers.serialize(content_type, object)
-        encrypt(internal)
+#        puts internal.inspect
+        dump = encrypt(internal)
+#        puts dump.inspect
+        dump
       end
 
       # Decrypts and deserializes the blob using the assigned cipher
@@ -119,11 +123,12 @@ module Ripple
       # generates a new iv each call unless a static (less secure)
       # iv is used.
       def encrypt(object)
+        old_version = '0.0.1'
         result = ''
         if cipher.respond_to?(:iv=) and @iv == nil
           iv = OpenSSL::Random.random_bytes(cipher.iv_len)
           cipher.iv = iv
-          result << Ripple::Contrib::VERSION << iv
+          result << old_version << iv
         end
 
         if cipher.respond_to?(:public_encrypt)
@@ -137,12 +142,13 @@ module Ripple
       end
 
       def decrypt(object)
+        old_version = '0.0.1'
         cipher_text = deserialize_base64(object)
 
         if cipher.respond_to?(:iv=) and @iv == nil
-          version = cipher_text.slice(0, Ripple::Contrib::VERSION.length)
-          cipher.iv = cipher_text.slice(Ripple::Contrib::VERSION.length, cipher.iv_len)
-          cipher_text = cipher_text.slice(Ripple::Contrib::VERSION.length + cipher.iv_len, cipher_text.length)
+          version = cipher_text.slice(0, old_version.length)
+          cipher.iv = cipher_text.slice(old_version.length, cipher.iv_len)
+          cipher_text = cipher_text.slice(old_version.length + cipher.iv_len, cipher_text.length)
         end
 
         if cipher.respond_to?(:private_decrypt)
