@@ -101,21 +101,25 @@ module Ripple
       # @param [Object] object the Ruby object to serialize/encrypt
       # @return [String] the serialized, encrypted form of the object
       def dump(object)
-#        puts object.inspect
-        internal = ::Riak::Serializers.serialize(content_type, object)
-#        puts internal.inspect
-        dump = encrypt(internal)
-#        puts dump.inspect
-        dump
+        JsonDocument.new(object).encrypt
+        # v1 method commented out below
+        # internal = ::Riak::Serializers.serialize(content_type, object)
+        # encrypt(internal)
       end
 
       # Decrypts and deserializes the blob using the assigned cipher
       # and Content-Type.
       # @param [String] blob the original content from Riak
       # @return [Object] the decrypted and deserialized object
-      def load(blob)
-        internal = decrypt(blob)
-        ::Riak::Serializers.deserialize(content_type, internal)
+      def load(object)
+        # try the v1 way first
+        begin
+          internal = decrypt(object)
+          ::Riak::Serializers.deserialize(content_type, internal)
+        # if that doesn't work, try the v2 way
+        rescue OpenSSL::Cipher::CipherError
+          EncryptedJsonDocument.new(object).decrypt
+        end
       end
 
       private
@@ -138,12 +142,11 @@ module Ripple
           result << cipher.update(object) << cipher.final
           cipher.reset
         end
-        return serialize_base64(result)
+        return result
       end
 
-      def decrypt(object)
+      def decrypt(cipher_text)
         old_version = '0.0.1'
-        cipher_text = deserialize_base64(object)
 
         if cipher.respond_to?(:iv=) and @iv == nil
           version = cipher_text.slice(0, old_version.length)
@@ -170,20 +173,6 @@ module Ripple
       end
 
       private
-      def base64_active
-        @base64
-      end
-
-      def deserialize_base64(data)
-        return data unless base64_active
-        return Base64.decode64 data
-      end
-
-      def serialize_base64(data)
-        return data unless base64_active
-        return Base64.encode64(data)
-      end
-
     end
 
   end

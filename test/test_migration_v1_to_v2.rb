@@ -1,101 +1,32 @@
 require 'helper'
 
 class TestMigrationV1ToV2 < Test::Unit::TestCase
-  context "Ripple::Contrib::Encryption" do
-    should "set the default encrypted content type on the document" do
-      assert_equal EncryptedDocument.encrypted_content_type, "application/x-json-encrypted"
-    end
-  end
-
-  context "Ripple::Contrib::EncryptedSerializer" do
+  context "GenericModel" do
     setup do
-      @encryptor = Ripple::Contrib::EncryptedSerializer.new(NullCipher.new)
-      @encryptor.base64 = false
     end
 
-    should "not be activated by default" do
-      assert_equal false, Ripple::Contrib::Encryption.activated
+    should "read both document types" do
+      assert v1 = TestDocument.find('v1_doc')
+      assert v2 = TestDocument.find('v2_doc')
+      assert_equal 'this is v1 data', v1.message
+      assert_equal 'this is v2 data', v2.message
     end
 
-    should "serialize using the internal content type" do
-      expected = YAML.dump({"name" => "basho"})
-      @encryptor.content_type = "application/yaml"
-      assert_equal @encryptor.dump({"name" => "basho"}), expected
+    should "write in v2" do
+      document = TestDocument.new
+      document.message = 'here is some new data'
+      document.save
+      same_document = TestDocument.find(document.key)
+      assert_equal document.message, same_document.message
     end
 
-    should "deserialize using the internal content type" do
-      input = YAML.dump({"name" => "basho"})
-      @encryptor.content_type = "application/yaml"
-      assert_equal @encryptor.load(input), {"name" => "basho"}
+    should "write in v2 raw confirmation" do
+      document = TestDocument.new
+      document.message = 'here is some new data'
+      document.save
+      expected_v2_data = '{"version":"0.0.2","iv":"ABYLnUHWE/fIwE2gKYC6hg==\n","data":"XcjjKHW6HWGMMHfRAg92eVtCOWb4epj1yi73o9bTFYdXGVmPSvVVBruuU0cL\n3iUWkhHvxh32P1wMI5nzKqgPsQ==\n"}'
+      raw_data = `curl -s -XGET http://#{Ripple.config[:host]}:#{Ripple.config[:http_port]}/buckets/#{TestDocument.bucket_name}/keys/#{document.key}`
+      assert_equal expected_v2_data, raw_data
     end
-
-    context "using asymmetric encryption" do
-      setup do
-        @key = OpenSSL::PKey::RSA.new(File.read("test/support/fixtures/privkey.pem"), "basho")
-        @encryptor = Ripple::Contrib::EncryptedSerializer.new(@key)
-      end
-
-      should "encrypt using the public key" do
-        assert_equal @key.private_decrypt(@encryptor.dump({"name" => "basho"})), '{"name":"basho"}'
-      end
-
-      should "decrypt using the private key" do
-        assert_equal @encryptor.load(@key.public_encrypt('{"name":"basho"}')), {"name" => "basho"}
-      end
-    end
-
-    context "using DES symmetric encryption" do
-      setup do
-        @encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new("DES3"))
-        @encryptor.key = "basho12345678910818761057920"
-      end
-
-      should "encrypt & decrypt using des encryptor" do
-        input = {"name" => "basho"}
-        expected = YAML.dump(input)
-        cipher_text = @encryptor.dump(input)
-        assert cipher_text != input
-        result = YAML.dump(@encryptor.load(cipher_text))
-        assert_equal expected, result
-      end
-    end
-
-    context "using AES symmetric encryption" do
-      setup do
-        @encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new("AES-256-CBC"))
-        @encryptor.key = 'basho123456789101112basho_test12'
-      end
-
-      should "encrypt & decrypt using aes encryptor" do
-        input = {"name" => "basho"}
-        expected = YAML.dump(input)
-        cipher_text = @encryptor.dump(input)
-        assert cipher_text != input
-        result = YAML.dump(@encryptor.load(cipher_text))
-        assert_equal expected, result
-      end
-    end
-
-    context "using base64 encoding" do
-      setup do
-        @encryptor = Ripple::Contrib::EncryptedSerializer.new(NullCipher.new)
-        @encryptor.base64 = true
-      end
-
-      should "serialize to base64" do
-        input = {"name" => "basho"}
-        expected = Base64.encode64 YAML.dump(input)
-        @encryptor.content_type = "application/yaml"
-        assert_equal expected, @encryptor.dump(input)
-      end
-
-      should "deserialize from base64" do
-        expected = {"name" => "basho"}
-        input = Base64.encode64 YAML.dump(expected)
-        @encryptor.content_type = "application/yaml"
-        assert_equal expected, @encryptor.load(input)
-      end
-    end
-
   end
 end

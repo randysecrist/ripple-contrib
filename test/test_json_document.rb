@@ -8,10 +8,10 @@ class TestJsonDocument < Test::Unit::TestCase
       encryptor = Ripple::Contrib::Encryptor.new config
 
       # this is the data package that we want
-      @document = JSON.dump({:some => 'data goes here'})
+      @document = {'some' => 'data goes here'}
 
       # this is how we want that data package to actually be stored
-      encrypted_value = encryptor.encrypt @document
+      encrypted_value = encryptor.encrypt JSON.dump @document
       @encrypted_document = JSON.dump({:version => Ripple::Contrib::VERSION, :iv => Base64.encode64(config['iv']), :data => Base64.encode64(encrypted_value)})
     end
 
@@ -27,7 +27,7 @@ class TestJsonDocument < Test::Unit::TestCase
   context "Ripple::Contrib::JsonDocument with no initialization vector" do
     setup do
       # this is the data package that we want
-      @document = JSON.dump({:some => 'data goes here'})
+      @document = {'some' => 'data goes here'}
 
       # rig a JsonDocument without an iv
       ENV['RACK_ENV'] = 'test-without-iv'

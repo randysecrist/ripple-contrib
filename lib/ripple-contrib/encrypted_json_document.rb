@@ -21,7 +21,7 @@ module Ripple
 
       # Returns the original data from the stored encrypted format
       def decrypt
-        @decryptor.decrypt Base64.decode64(@json['data'])
+        JSON.load @decryptor.decrypt Base64.decode64 @json['data']
       end
     end
   end
