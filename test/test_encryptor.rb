@@ -3,7 +3,7 @@ require 'helper'
 class TestEncryptor < Test::Unit::TestCase
   context "Ripple::Contrib::Encryptor" do
     setup do
-      @encryptor = Ripple::Contrib::Encryptor.new Ripple::Contrib::Config.defaults
+      @encryptor = Ripple::Contrib::Encryptor.new Ripple::Contrib::Config.new.to_h
       # example text
       @text = "This is some nifty text."
       # this is the example text encrypted

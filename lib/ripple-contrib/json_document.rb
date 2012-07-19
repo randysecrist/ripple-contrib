@@ -7,9 +7,10 @@ module Ripple
     class JsonDocument
       # Creates an object that is prepared to encrypt its contents.
       # @param [String] data object to store
-      def initialize(data)
+      def initialize(config, data)
+        config.activate
+        @config = config.to_h
         @data = JSON.dump(data)
-        @config = Ripple::Contrib::Config.defaults
         @encryptor = Ripple::Contrib::Encryptor.new @config
       end
 
