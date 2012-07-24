@@ -35,9 +35,9 @@ module Ripple
       #     encryption/decryption algorithm
       # @param [String] content_type the Content-Type of the
       #     unencrypted contents
-      def initialize(cipher, content_type='application/json')
+      def initialize(cipher, content_type='application/json', path)
         @cipher, @content_type = cipher, content_type
-        @config = Ripple::Contrib::Config.new
+        @config = Ripple::Contrib::Config.new(path)
       end
 
       # Serializes and encrypts the Ruby object using the assigned
@@ -46,9 +46,6 @@ module Ripple
       # @return [String] the serialized, encrypted form of the object
       def dump(object)
         JsonDocument.new(@config, object).encrypt
-        # v1 method commented out below
-        # internal = ::Riak::Serializers.serialize(content_type, object)
-        # encrypt(internal)
       end
 
       # Decrypts and deserializes the blob using the assigned cipher
@@ -59,10 +56,10 @@ module Ripple
         # try the v1 way first
         begin
           internal = decrypt(object)
-          ::Riak::Serializers.deserialize(content_type, internal)
+          return ::Riak::Serializers.deserialize('application/json', internal)
         # if that doesn't work, try the v2 way
         rescue OpenSSL::Cipher::CipherError
-          EncryptedJsonDocument.new(@config, object).decrypt
+          return EncryptedJsonDocument.new(@config, object).decrypt
         end
       end
 

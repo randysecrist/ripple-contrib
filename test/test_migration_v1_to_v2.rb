@@ -6,6 +6,7 @@ class TestMigrationV1ToV2 < Test::Unit::TestCase
     end
 
     should "read both document types" do
+#raise Riak::Serializers['application/x-json-encrypted'].inspect
       assert v1 = TestDocument.find('v1_doc')
       assert v2 = TestDocument.find('v2_doc')
       assert_equal 'this is v1 data', v1.message

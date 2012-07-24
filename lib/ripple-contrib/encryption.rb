@@ -33,20 +33,19 @@ module Ripple
         end
       end
 
-      def self.activate
+      def self.activate(path)
         encryptor = nil
-        begin
-          unless Riak::Serializers['application/x-json-encrypted']
-            config = YAML.load_file("config/encryption.yml")[ENV['RACK_ENV']]
-            encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new(config['cipher']))
-            encryptor.key = config['key'] if config['key']
-            encryptor.iv = config['iv'] if config['iv']
-            encryptor.base64 = config['base64'] if config['base64']
-            Riak::Serializers['application/x-json-encrypted'] = encryptor
-            @@is_activated = true
+        unless Riak::Serializers['application/x-json-encrypted']
+          begin
+            config = YAML.load_file(path)[ENV['RACK_ENV']]
+            encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new(config['cipher']), 'application/x-json-encrypted', path)
+          rescue Exception => e
+            handle_invalid_encryption_config(e.message, e.backtrace)
           end
-        rescue Exception => e
-          handle_invalid_encryption_config(e.message, e.backtrace)
+          encryptor.key = config['key'] if config['key']
+          encryptor.iv = config['iv'] if config['iv']
+          Riak::Serializers['application/x-json-encrypted'] = encryptor
+          @@is_activated = true
         end
         encryptor
       end

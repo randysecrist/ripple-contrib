@@ -3,11 +3,12 @@ require 'helper'
 class TestEncryptor < Test::Unit::TestCase
   context "Ripple::Contrib::Encryptor" do
     setup do
-      @encryptor = Ripple::Contrib::Encryptor.new Ripple::Contrib::Config.new.to_h
+      config     = Ripple::Contrib::Config.new ENV['ENCRYPTION']
+      @encryptor = Ripple::Contrib::Encryptor.new config.to_h
       # example text
-      @text = "This is some nifty text."
+      @text      = "This is some nifty text."
       # this is the example text encrypted
-      @blob = "4\xD5\xE0F\fE\xBC/\xC8KDk_\v\xC5\x15\xB7\xD0\x02j\xB7\r\xB4'\x1Fz\xCE\x9B\xFC\x1FK?"
+      @blob      = "4\xD5\xE0F\fE\xBC/\xC8KDk_\v\xC5\x15\xB7\xD0\x02j\xB7\r\xB4'\x1Fz\xCE\x9B\xFC\x1FK?"
     end
 
     should "convert text to an encrypted blob" do

@@ -13,7 +13,6 @@ module Ripple
       def initialize(config, data)
         @config = config.to_h
         @json = JSON.parse data
-
         raise(EncryptedJsonDocumentError, "Missing 'iv' for decryption") unless @json['iv']
         iv = Base64.decode64 @json['iv']
         @config.merge('iv' => iv)

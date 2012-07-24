@@ -4,14 +4,16 @@ $LOAD_PATH.unshift(File.dirname(__FILE__))
 require 'test/unit'
 require 'contest'
 
-require 'support/ripple_test_server'
 require 'ripple-contrib'
+
+ENV['RACK_ENV']   = 'test'
+ENV['RIPPLE']     = File.expand_path(File.join('..','fixtures','ripple.yml'),__FILE__)
+ENV['ENCRYPTION'] = File.expand_path(File.join('..','fixtures','encryption.yml'),__FILE__)
 
 # connect to a local Riak test node
 begin
-  riak_config_path = File.expand_path('../../config/ripple.yml',__FILE__)
-  Ripple.load_configuration riak_config_path, ['test']
-  riak_config = Hash[YAML.load_file(riak_config_path)['test'].map{|k,v| [k.to_sym, v]}]
+  Ripple.load_configuration ENV['RIPPLE'], ['test']
+  riak_config = Hash[YAML.load_file(ENV['RIPPLE'])['test'].map{|k,v| [k.to_sym, v]}]
   client = Riak::Client.new(:nodes => [riak_config])
   bucket = client.bucket("#{riak_config[:namespace].to_s}test") 
   object = bucket.get_or_new("test") 
@@ -19,7 +21,7 @@ rescue RuntimeError
   raise RuntimeError, "Could not connect to the Riak test node."
 end
 # define test Ripple Documents
-Ripple::Contrib::Encryption.activate
+Ripple::Contrib::Encryption.activate ENV['ENCRYPTION']
 class TestDocument
   include Ripple::Document
   include Ripple::Contrib::Encryption
@@ -30,7 +32,7 @@ class TestDocument
   end
 end
 # load Riak fixtures
-FileList[File.expand_path('../fixtures/*',__FILE__)].each do |f|
+FileList[File.expand_path(File.join('..','fixtures','*'),__FILE__)].each do |f|
   if Dir.exists? f
     fixture_type = File.basename(f)
     begin
