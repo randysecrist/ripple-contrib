@@ -1,0 +1,5 @@
+test:
+  cipher: AES-256-CBC
+  key: basho123456789101112basho_dev123
+  iv: !binary |
+    ABYLnUHWE/fIwE2gKYC6hg==
