@@ -33,20 +33,19 @@ module Ripple
         end
       end
 
-      def self.activate
+      def self.activate(path)
         encryptor = nil
-        begin
-          unless Riak::Serializers['application/x-json-encrypted']
-            config = YAML.load_file("config/encryption.yml")[ENV['RACK_ENV']]
-            encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new(config['cipher']))
-            encryptor.key = config['key'] if config['key']
-            encryptor.iv = config['iv'] if config['iv']
-            encryptor.base64 = config['base64'] if config['base64']
-            Riak::Serializers['application/x-json-encrypted'] = encryptor
-            @@is_activated = true
+        unless Riak::Serializers['application/x-json-encrypted']
+          begin
+            config = YAML.load_file(path)[ENV['RACK_ENV']]
+            encryptor = Ripple::Contrib::EncryptedSerializer.new(OpenSSL::Cipher.new(config['cipher']), 'application/x-json-encrypted', path)
+          rescue Exception => e
+            handle_invalid_encryption_config(e.message, e.backtrace)
           end
-        rescue Exception => e
-          handle_invalid_encryption_config(e.message, e.backtrace)
+          encryptor.key = config['key'] if config['key']
+          encryptor.iv = config['iv'] if config['iv']
+          Riak::Serializers['application/x-json-encrypted'] = encryptor
+          @@is_activated = true
         end
         encryptor
       end
@@ -56,132 +55,7 @@ module Ripple
       end
 
     end
-
-    # Implements the {Riak::Serializer} API for the purpose of
-    # encrypting/decrypting Ripple documents.
-    #
-    # Example usage:
-    #     ::Riak::Serializers['application/x-json-encrypted'] = EncryptedSerializer.new(OpenSSL::Cipher.new("AES-256"))
-    #     class MyDocument
-    #       include Ripple::Document
-    #       include Riak::Encryption
-    #     end
-    #
-    # @see Encryption
-    class EncryptedSerializer
-      # @return [String] The Content-Type of the internal format,
-      #      generally "application/json"
-      attr_accessor :content_type
-
-      # @return [OpenSSL::Cipher, OpenSSL::PKey::*] the cipher used to encrypt the object
-      attr_accessor :cipher
-
-      # Cipher-specific settings
-      # @see OpenSSL::Cipher
-      attr_accessor :key, :iv, :key_length, :padding
-
-      # Serialization Options
-      # @return [true, false] Is the encrypted text also base64 encoded?
-      attr_accessor :base64
-
-      # Creates a serializer using the provided cipher and internal
-      # content type. Be sure to set the {#key}, {#iv}, {#key_length},
-      # {#padding} as appropriate for the cipher before attempting
-      # (de-)serialization.
-      # @param [OpenSSL::Cipher] cipher the desired
-      #     encryption/decryption algorithm
-      # @param [String] content_type the Content-Type of the
-      #     unencrypted contents
-      def initialize(cipher, content_type='application/json')
-        @cipher, @content_type = cipher, content_type
-      end
-
-      # Serializes and encrypts the Ruby object using the assigned
-      # cipher and Content-Type.
-      # @param [Object] object the Ruby object to serialize/encrypt
-      # @return [String] the serialized, encrypted form of the object
-      def dump(object)
-        internal = ::Riak::Serializers.serialize(content_type, object)
-        encrypt(internal)
-      end
-
-      # Decrypts and deserializes the blob using the assigned cipher
-      # and Content-Type.
-      # @param [String] blob the original content from Riak
-      # @return [Object] the decrypted and deserialized object
-      def load(blob)
-        internal = decrypt(blob)
-        ::Riak::Serializers.deserialize(content_type, internal)
-      end
-
-      private
-
-      # generates a new iv each call unless a static (less secure)
-      # iv is used.
-      def encrypt(object)
-        result = ''
-        if cipher.respond_to?(:iv=) and @iv == nil
-          iv = OpenSSL::Random.random_bytes(cipher.iv_len)
-          cipher.iv = iv
-          result << Ripple::Contrib::VERSION << iv
-        end
-
-        if cipher.respond_to?(:public_encrypt)
-          result << cipher.public_encrypt(object)
-        else
-          cipher_setup :encrypt
-          result << cipher.update(object) << cipher.final
-          cipher.reset
-        end
-        return serialize_base64(result)
-      end
-
-      def decrypt(object)
-        cipher_text = deserialize_base64(object)
-
-        if cipher.respond_to?(:iv=) and @iv == nil
-          version = cipher_text.slice(0, Ripple::Contrib::VERSION.length)
-          cipher.iv = cipher_text.slice(Ripple::Contrib::VERSION.length, cipher.iv_len)
-          cipher_text = cipher_text.slice(Ripple::Contrib::VERSION.length + cipher.iv_len, cipher_text.length)
-        end
-
-        if cipher.respond_to?(:private_decrypt)
-          cipher.private_decrypt(cipher_text)
-        else
-          cipher_setup :decrypt
-          result = cipher.update(cipher_text) << cipher.final
-          cipher.reset
-          result
-        end
-      end
-
-      def cipher_setup(mode)
-        cipher.send mode
-        cipher.key        = key        if key
-        cipher.iv         = iv         if iv
-        cipher.key_length = key_length if key_length
-        cipher.padding    = padding    if padding
-      end
-
-      private
-      def base64_active
-        @base64
-      end
-
-      def deserialize_base64(data)
-        return data unless base64_active
-        return Base64.decode64 data
-      end
-
-      def serialize_base64(data)
-        return data unless base64_active
-        return Base64.encode64(data)
-      end
-
-    end
-
   end
-
 end
 
 def handle_invalid_encryption_config(msg, trace)
