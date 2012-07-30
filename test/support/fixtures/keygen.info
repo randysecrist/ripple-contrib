@@ -1,2 +1,0 @@
-recreate privkey.pem with the command:
-  openssl genrsa -des3 -out privkey.pem 1024
