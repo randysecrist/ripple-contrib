@@ -58,7 +58,7 @@ module Ripple
           internal = decrypt(object)
           return ::Riak::Serializers.deserialize('application/json', internal)
         # if that doesn't work, try the v2 way
-        rescue OpenSSL::Cipher::CipherError
+        rescue OpenSSL::Cipher::CipherError, MultiJson::DecodeError
           return EncryptedJsonDocument.new(@config, object).decrypt
         end
       end
