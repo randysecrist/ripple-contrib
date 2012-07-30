@@ -42,7 +42,8 @@ FileList[File.expand_path(File.join('..','fixtures','*'),__FILE__)].each do |f|
     end
     FileList[File.join(f,'*.riak')].each do |r|
       key = File.basename(r,'.riak')
-      `curl -s -H 'content-type: application/x-json-encrypted' -XPUT http://#{Ripple.config[:host]}:#{Ripple.config[:http_port]}/buckets/#{Ripple.config[:namespace]}#{fixture_type.pluralize}/keys/#{key} --data-binary @#{r}`
+      content_type = (key == 'v0_doc' ? 'application/json' : 'application/x-json-encrypted')
+      `curl -s -H 'content-type: #{content_type}' -XPUT http://#{Ripple.config[:host]}:#{Ripple.config[:http_port]}/buckets/#{Ripple.config[:namespace]}#{fixture_type.pluralize}/keys/#{key} --data-binary @#{r}`
     end
   end
 end
