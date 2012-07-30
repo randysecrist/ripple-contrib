@@ -11,11 +11,11 @@ module Ripple
       # Creates an object that is prepared to decrypt its contents.
       # @param [String] data json string that was stored in Riak
       def initialize(config, data)
-        @config = config.to_h
+        @config = config.to_h.clone
         @json = JSON.parse data
         raise(EncryptedJsonDocumentError, "Missing 'iv' for decryption") unless @json['iv']
         iv = Base64.decode64 @json['iv']
-        @config.merge('iv' => iv)
+        @config.merge!('iv' => iv)
 
         @decryptor = Ripple::Contrib::Encryptor.new @config
       end
